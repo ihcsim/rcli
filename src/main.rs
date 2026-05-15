@@ -54,9 +54,6 @@ struct Args {
     path: PathBuf,
 }
 
-#[derive(Debug)]
-struct CustomError(String);
-
 #[test]
 fn test_find_matches() -> Result<()> {
     let mut result = Vec::new();
