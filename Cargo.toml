@@ -7,3 +7,8 @@ edition = "2024"
 clap = { version = "4.6.1", features = ["derive"] }
 anyhow = { version = "1.0.102", features = ["backtrace"] }
 indicatif = { version = "0.18.4", features = ["rayon"] }
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+predicates = "3.1.4"
+assert_fs = "1.1.3"
