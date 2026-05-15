@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use clap::Parser;
+use std::io::{self, Write};
 use std::{fs, path::PathBuf};
 
 fn main() -> Result<()> {
@@ -7,9 +8,11 @@ fn main() -> Result<()> {
     let path = &args.path;
     let content = fs::read_to_string(path)
         .with_context(|| format!("Failed to read file `{}`", path.display()))?;
+
+    let mut buf = io::BufWriter::new(io::stdout());
     for line in content.lines() {
         if line.contains(&args.pattern) {
-            println!("{}", line);
+            writeln!(buf, "{}", line)?;
         }
     }
     Ok(())
