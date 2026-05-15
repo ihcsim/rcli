@@ -12,20 +12,9 @@ fn main() -> Result<()> {
         .with_context(|| format!("Failed to read file `{}`", path.display()))?;
 
     let pb = ProgressBar::new(100);
-    let mut buf = io::BufWriter::new(io::stdout());
-    let mut lines_total = 0;
-    let mut lines_matched = 0;
-    for line in content.lines() {
-        lines_total += 1;
-        if line.contains(&args.pattern) {
-            lines_matched += 1;
-            writeln!(buf, "{}", line)?;
-        }
-        pb.inc(1);
-    }
+    let (lines_total, lines_matched) = find_matches(&pattern, &content, io::stdout(), &pb)?;
     pb.finish();
 
-    buf.flush()?;
     println!(
         "lines match: ({}/{}), time elapsed: {:?}",
         lines_matched,
@@ -33,6 +22,25 @@ fn main() -> Result<()> {
         pb.elapsed()
     );
     Ok(())
+}
+
+fn find_matches(
+    pattern: &str,
+    content: &str,
+    mut w: impl Write,
+    pb: &ProgressBar,
+) -> Result<(i32, i32)> {
+    let mut lines_total = 0;
+    let mut lines_matched = 0;
+    for line in content.lines() {
+        lines_total += 1;
+        if line.contains(pattern) {
+            lines_matched += 1;
+            writeln!(w, "{}", line)?;
+        }
+        pb.inc(1);
+    }
+    Ok((lines_total, lines_matched))
 }
 
 /// Search for a pattern in a file and display the lines that contain it.
@@ -48,3 +56,17 @@ struct Args {
 
 #[derive(Debug)]
 struct CustomError(String);
+
+#[test]
+fn test_find_matches() -> Result<()> {
+    let mut result = Vec::new();
+    let pb = ProgressBar::new(100);
+    let (lines_total, lines_matched) =
+        find_matches("lorem", "lorem ipsum\ndolor sit amet", &mut result, &pb)?;
+    pb.finish();
+
+    assert_eq!(result, b"lorem ipsum\n");
+    assert_eq!(lines_total, 2);
+    assert_eq!(lines_matched, 1);
+    Ok(())
+}
