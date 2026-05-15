@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 anyhow = { version = "1.0.102", features = ["backtrace"] }
+indicatif = { version = "0.18.4", features = ["rayon"] }
