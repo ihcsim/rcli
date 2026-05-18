@@ -1,12 +1,15 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use crossbeam_channel::{Receiver, Sender, bounded};
+use human_panic::setup_panic;
 use indicatif::ProgressBar;
 use std::io::{self, Write};
 use std::thread;
 use std::{fs, path::PathBuf};
 
 fn main() -> Result<()> {
+    setup_panic!();
+
     let (sender, receiver): (Sender<()>, Receiver<()>) = bounded(2);
     let t = thread::spawn(move || {
         if let Err(e) = ctrlc::set_handler(move || {

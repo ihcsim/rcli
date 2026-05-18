@@ -9,6 +9,7 @@ anyhow = { version = "1.0.102", features = ["backtrace"] }
 indicatif = { version = "0.18.4", features = ["rayon"] }
 ctrlc = { version = "3.5.2" }
 crossbeam-channel = { version = "0.5.15" }
+human-panic = { version = "2.0.8", features = ["color"] }
 
 [dev-dependencies]
 assert_cmd = "2.2.2"
