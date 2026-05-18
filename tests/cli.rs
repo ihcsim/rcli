@@ -8,7 +8,7 @@ fn file_not_found() -> Result<(), Box<dyn std::error::Error>> {
     cmd.arg("foobar").arg("test/file/not_found");
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("Failed to read file"));
+        .stderr(predicate::str::contains("failed to read file"));
     Ok(())
 }
 
