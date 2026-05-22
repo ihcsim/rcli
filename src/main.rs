@@ -3,9 +3,9 @@ use clap::Parser;
 use crossbeam_channel::{Receiver, Sender, bounded};
 use human_panic::setup_panic;
 use indicatif::ProgressBar;
-use std::io::{self, Write};
+use std::io::Write;
 use std::thread;
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, time::Duration};
 
 fn main() -> Result<()> {
     setup_panic!();
@@ -27,15 +27,22 @@ fn main() -> Result<()> {
     let content = fs::read_to_string(path)
         .with_context(|| format!("failed to read file `{}`", path.display()))?;
     let pb = ProgressBar::new(100);
-    let (lines_total, lines_matched) =
-        find_matches(&pattern, &content, io::stdout(), receiver, &pb)?;
+    let mut buf = Vec::new();
+    let (lines_total, lines_matched) = find_matches(&pattern, &content, &mut buf, receiver, &pb)?;
     pb.finish();
-    println!(
-        "lines match: ({}/{}), time elapsed: {:?}",
-        lines_matched,
-        lines_total,
-        pb.elapsed()
-    );
+
+    if args.json {
+        json_output(
+            buf,
+            &pattern,
+            path.to_str().unwrap_or_default(),
+            lines_total,
+            lines_matched,
+            pb.elapsed(),
+        )?;
+    } else {
+        stdout(buf, lines_total, lines_matched, pb.elapsed())?;
+    }
 
     t.thread().unpark();
     t.join()
@@ -69,6 +76,42 @@ fn find_matches(
     Ok((lines_total, lines_matched))
 }
 
+fn stdout(buf: Vec<u8>, lines_total: i32, lines_matched: i32, elapsed: Duration) -> Result<()> {
+    for line in String::from_utf8(buf)
+        .with_context(|| "failed to convert to string")?
+        .lines()
+    {
+        println!("{}", line);
+    }
+    println!(
+        "lines match: ({}/{}), time elapsed: {:?}",
+        lines_matched, lines_total, elapsed
+    );
+    Ok(())
+}
+
+fn json_output(
+    buf: Vec<u8>,
+    pattern: &str,
+    path: &str,
+    lines_total: i32,
+    lines_matched: i32,
+    elapsed: Duration,
+) -> Result<()> {
+    let buf_str = String::from_utf8(buf).with_context(|| "failed to convert to string")?;
+    let matches: Vec<&str> = buf_str.split('\n').filter(|x| !x.is_empty()).collect();
+    let result = serde_json::json!({
+        "pattern": pattern,
+        "path": path,
+        "lines_total": lines_total,
+        "lines_matched": lines_matched,
+        "time_elapsed": elapsed,
+        "matches": matches,
+    });
+    println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
 /// Search for a pattern in a file and display the lines that contain it.
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -78,6 +121,10 @@ struct Args {
 
     /// The path to the file to read
     path: PathBuf,
+
+    /// Output in JSON format
+    #[clap(short, long, default_value_t = false)]
+    json: bool,
 }
 
 #[test]
